@@ -55,19 +55,19 @@ func (r *Renderer) renderInline(node *parser.Node) string {
 	case parser.TokenEmphasis:
 		result.WriteString("<em>")
 		for _, child := range node.Children {
-			result.WriteString(r.Render(child))
+			result.WriteString(r.renderInline(child))
 		}
 		result.WriteString("</em>")
 	case parser.TokenStrong:
 		result.WriteString("<strong>")
 		for _, child := range node.Children {
-			result.WriteString(r.Render(child))
+			result.WriteString(r.renderInline(child))
 		}
 		result.WriteString("</strong>")
 	case parser.TokenLink:
 		result.WriteString(fmt.Sprintf(`<a href="%s">`, html.EscapeString(node.Link)))
 		for _, child := range node.Children {
-			result.WriteString(r.Render(child))
+			result.WriteString(r.renderInline(child))
 		}
 		result.WriteString("</a>")
 	case parser.TokenImage:
@@ -75,8 +75,12 @@ func (r *Renderer) renderInline(node *parser.Node) string {
 			html.EscapeString(node.Link), html.EscapeString(node.Content)))
 	default:
 		// 对于其他类型的节点，递归渲染其子节点
-		for _, child := range node.Children {
-			result.WriteString(r.Render(child))
+		if node.Children == nil {
+			result.WriteString(node.Content)
+		} else {
+			for _, child := range node.Children {
+				result.WriteString(r.renderInline(child))
+			}
 		}
 	}
 
