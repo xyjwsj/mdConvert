@@ -2,6 +2,8 @@ package mdConvert
 
 import parser "github.com/xyjwsj/md-parser"
 
-type Render interface {
-	Render(node *parser.Node)
+type RenderItem interface {
+	RenderTag(node *parser.Node) TagInfo
+	RenderText(content string)
+	Result() string
 }

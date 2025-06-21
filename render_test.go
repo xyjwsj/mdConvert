@@ -12,8 +12,9 @@ func TestHtmlRender(t *testing.T) {
 	lexer := parser2.NewLexer(string(file))
 	parser := parser2.NewParser(lexer)
 	ast := parser.Parse()
-	renderer := NewRenderer()
-	html := renderer.Render(ast)
+	render := HtmlRender{}
+	newRender := NewRender(&render)
+	html := newRender.Render(ast)
 
 	fmt.Println(html)
 }
