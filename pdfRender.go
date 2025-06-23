@@ -1,14 +1,21 @@
 package mdConvert
 
 import (
+	"embed"
 	"github.com/phpdave11/gofpdf"
 	parser "github.com/xyjwsj/md-parser"
 	"log"
 )
 
+//go:embed SFNSRounded.ttf
+var fontAssets embed.FS
+
+var fontName = "SFNSRounded"
+
 type PDFRender struct {
-	file *gofpdf.Fpdf
-	line float64
+	file   *gofpdf.Fpdf
+	line   float64
+	strong bool
 }
 
 func CreatePdfRender() *PDFRender {
@@ -16,13 +23,18 @@ func CreatePdfRender() *PDFRender {
 	pdf.SetMargins(15, 15, 15)
 	pdf.AddPage()
 
-	// 添加并使用中文字体
-	//pdf.AddFont("Arial", "", "font/Arial.ttf")
-	pdf.SetFont("Arial", "", 14)
+	file, _ := fontAssets.ReadFile("SFNSRounded.ttf")
+	pdf.AddUTF8FontFromBytes(fontName, "", file)
+	pdf.SetFont(fontName, "", 14)
 
 	return &PDFRender{
-		file: pdf,
+		file:   pdf,
+		strong: false,
 	}
+}
+
+func (pdf *PDFRender) resetFont() {
+	pdf.file.SetFont(fontName, "", 14)
 }
 
 func (pdf *PDFRender) RenderTag(node *parser.Node) TagInfo {
@@ -33,38 +45,48 @@ func (pdf *PDFRender) RenderTag(node *parser.Node) TagInfo {
 
 	switch node.Type {
 	case parser.TokenHeader:
-		pdf.file.SetFont("Arial", "B", float64(18-node.Level))
+		pdf.file.SetFont(fontName, "B", float64(16-node.Level))
 		pdf.line = 8
-		pdf.file.Ln(3) // 加大标题与正文之间的间距
+		line := 8
+		if node.Level > 0 {
+			//line = 4
+			pdf.line = 5
+		}
+		pdf.file.Ln(float64(line)) // 加大标题与正文之间的间距
 
 	case parser.TokenParagraph:
-		pdf.file.SetFont("Arial", "", 14)
+		pdf.file.SetFont(fontName, "", 12)
 		pdf.line = 5
 		pdf.file.Ln(3)
 
 	case parser.TokenList:
-		pdf.file.SetFont("Arial", "", 14)
+		pdf.file.SetFont(fontName, "", 12)
 		pdf.file.Ln(3)
 		pdf.line = 6
 
 	case parser.TokenListItem:
-		pdf.file.SetFont("Arial", "", 14)
+		pdf.file.SetFont(fontName, "", 12)
 		pdf.file.SetX(20) // 缩进 20mm
-		pdf.file.Ln(2)
-		pdf.line = 6
-
+		pdf.file.Ln(float64(6 - node.Indent))
+		pdf.line = float64(5 - node.Indent)
+		start := "• "
+		if node.Indent > 0 {
+			start = "◦ "
+		}
+		//pdf.file.Write(4, start)
 		return TagInfo{
-			StartFormat: "",
+			StartFormat: start,
 			End:         "\n",
 		}
 
 	case parser.TokenEmphasis:
-		pdf.file.SetFont("Arial", "I", 14)
+		pdf.file.SetFont(fontName, "I", 12)
 		pdf.line = 5
 
 	case parser.TokenStrong:
-		pdf.file.SetFont("Arial", "B", 14)
+		pdf.file.SetFont(fontName, "B", 12)
 		pdf.line = 5
+		pdf.strong = true
 
 	case parser.TokenCodeBlock:
 		pdf.file.SetFont("Courier", "", 12)
@@ -77,7 +99,7 @@ func (pdf *PDFRender) RenderTag(node *parser.Node) TagInfo {
 		pdf.file.Ln(3)
 
 	case parser.TokenLink:
-		pdf.file.SetFont("Arial", "U", 14)
+		pdf.file.SetFont(fontName, "U", 12)
 		pdf.line = 5
 
 	case parser.TokenImage:
@@ -87,21 +109,18 @@ func (pdf *PDFRender) RenderTag(node *parser.Node) TagInfo {
 		pdf.line = 10
 
 	case parser.TokenTable:
-		pdf.file.SetFont("Arial", "", 14)
+		pdf.file.SetFont(fontName, "", 12)
 		pdf.line = 6
 		pdf.file.Ln(3)
 
 	case parser.TokenTableRow:
-		pdf.file.SetFont("Arial", "", 14)
+		pdf.file.SetFont(fontName, "", 12)
 		//pdf.file.Ln(1)
 		pdf.line = 6
 
 	case parser.TokenTableCell:
 		pdf.line = 6
 
-	case parser.TokenText:
-		pdf.file.SetFont("Arial", "", 14)
-		pdf.line = 5
 	}
 
 	return TagInfo{}
@@ -110,8 +129,12 @@ func (pdf *PDFRender) RenderText(tType parser.TokenType, content string) {
 	// pdf.file.MultiCell(0, pdf.line, content, "", "", false)
 	if tType == parser.TokenTableRow {
 		pdf.file.CellFormat(0, pdf.line, content, "", 0, "", false, 0, "")
+		//pdf.file.CellFormat(0, pdf.line, start+" ", "", 0, "", false, 0, "")
 	}
 	pdf.file.Write(pdf.line, content)
+	if content != "" && pdf.strong && tType == parser.TokenText {
+		pdf.resetFont()
+	}
 }
 func (pdf *PDFRender) OutFile(path string) string {
 	// 输出 PDF
@@ -121,4 +144,8 @@ func (pdf *PDFRender) OutFile(path string) string {
 		return ""
 	}
 	return ""
+}
+
+func (pdf *PDFRender) styleConfig(t parser.TokenType) {
+
 }

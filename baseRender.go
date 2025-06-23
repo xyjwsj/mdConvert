@@ -23,7 +23,6 @@ func (r *Render) Render(node *parser.Node) {
 }
 
 func (r *Render) renderLine(node *parser.Node, line int) {
-
 	tagInfo := r.item.RenderTag(node)
 	r.item.RenderText(node.Type, createSpace(node.Indent)+tagInfo.StartFormat)
 	if node.Children != nil && len(node.Children) > 0 {
@@ -43,7 +42,7 @@ func (r *Render) renderLine(node *parser.Node, line int) {
 func createSpace(len int) string {
 	str := ""
 	for i := 0; i < len; i++ {
-		str += " "
+		str += "  "
 	}
 	return str
 }
