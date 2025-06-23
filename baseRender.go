@@ -25,18 +25,18 @@ func (r *Render) Render(node *parser.Node) {
 func (r *Render) renderLine(node *parser.Node, line int) {
 
 	tagInfo := r.item.RenderTag(node)
-	r.item.RenderText(createSpace(node.Indent) + tagInfo.StartFormat)
+	r.item.RenderText(node.Type, createSpace(node.Indent)+tagInfo.StartFormat)
 	if node.Children != nil && len(node.Children) > 0 {
 		for _, child := range node.Children {
 			r.renderLine(child, line+1)
 		}
 	} else {
-		r.item.RenderText(createSpace(node.Indent) + html.EscapeString(node.Content))
+		r.item.RenderText(node.Type, createSpace(node.Indent)+html.EscapeString(node.Content))
 	}
 
-	r.item.RenderText(tagInfo.End)
+	r.item.RenderText(node.Type, tagInfo.End)
 	if line < 2 {
-		r.item.RenderText("\n")
+		r.item.RenderText(node.Type, "\n")
 	}
 }
 

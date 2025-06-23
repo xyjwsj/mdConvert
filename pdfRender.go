@@ -34,7 +34,8 @@ func (pdf *PDFRender) RenderTag(node *parser.Node) TagInfo {
 	switch node.Type {
 	case parser.TokenHeader:
 		pdf.file.SetFont("Arial", "B", float64(18-node.Level))
-		pdf.file.Ln(5) // 加大标题与正文之间的间距
+		pdf.line = 8
+		pdf.file.Ln(3) // 加大标题与正文之间的间距
 
 	case parser.TokenParagraph:
 		pdf.file.SetFont("Arial", "", 14)
@@ -44,12 +45,18 @@ func (pdf *PDFRender) RenderTag(node *parser.Node) TagInfo {
 	case parser.TokenList:
 		pdf.file.SetFont("Arial", "", 14)
 		pdf.file.Ln(3)
-		pdf.line = 5
+		pdf.line = 6
 
 	case parser.TokenListItem:
 		pdf.file.SetFont("Arial", "", 14)
 		pdf.file.SetX(20) // 缩进 20mm
-		pdf.line = 5
+		pdf.file.Ln(2)
+		pdf.line = 6
+
+		return TagInfo{
+			StartFormat: "",
+			End:         "\n",
+		}
 
 	case parser.TokenEmphasis:
 		pdf.file.SetFont("Arial", "I", 14)
@@ -82,14 +89,14 @@ func (pdf *PDFRender) RenderTag(node *parser.Node) TagInfo {
 	case parser.TokenTable:
 		pdf.file.SetFont("Arial", "", 14)
 		pdf.line = 6
+		pdf.file.Ln(3)
 
 	case parser.TokenTableRow:
 		pdf.file.SetFont("Arial", "", 14)
-		pdf.file.Ln(1)
+		//pdf.file.Ln(1)
 		pdf.line = 6
 
 	case parser.TokenTableCell:
-		pdf.file.CellFormat(40, 6, node.Content, "1", 0, "L", false, 0, "")
 		pdf.line = 6
 
 	case parser.TokenText:
@@ -99,8 +106,12 @@ func (pdf *PDFRender) RenderTag(node *parser.Node) TagInfo {
 
 	return TagInfo{}
 }
-func (pdf *PDFRender) RenderText(content string) {
-	pdf.file.MultiCell(0, pdf.line, content, "", "", false)
+func (pdf *PDFRender) RenderText(tType parser.TokenType, content string) {
+	// pdf.file.MultiCell(0, pdf.line, content, "", "", false)
+	if tType == parser.TokenTableRow {
+		pdf.file.CellFormat(0, pdf.line, content, "", 0, "", false, 0, "")
+	}
+	pdf.file.Write(pdf.line, content)
 }
 func (pdf *PDFRender) OutFile(path string) string {
 	// 输出 PDF
