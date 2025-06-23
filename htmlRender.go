@@ -45,8 +45,8 @@ func (render *HtmlRender) RenderTag(node *parser.Node) TagInfo {
 		}
 	case parser.TokenCodeBlock:
 		return TagInfo{
-			StartFormat: "<pre><code>",
-			End:         "</code></pre>",
+			StartFormat: "<pre>\n<code>",
+			End:         "</code>\n</pre>",
 		}
 	case parser.TokenHorizontalRule:
 		return TagInfo{
@@ -64,6 +64,21 @@ func (render *HtmlRender) RenderTag(node *parser.Node) TagInfo {
 				html.EscapeString(node.Link), html.EscapeString(node.Content)),
 			End: "",
 		}
+	case parser.TokenTable:
+		return TagInfo{
+			StartFormat: "<table>\n",
+			End:         "</table>",
+		}
+	case parser.TokenTableRow:
+		return TagInfo{
+			StartFormat: "<tr>",
+			End:         "</tr>\n",
+		}
+	case parser.TokenTableCell:
+		return TagInfo{
+			StartFormat: "<td>",
+			End:         "</td>\n",
+		}
 	}
 	return TagInfo{
 		StartFormat: "",
@@ -74,6 +89,6 @@ func (render *HtmlRender) RenderText(content string) {
 	render.result.WriteString(content)
 }
 
-func (render *HtmlRender) Result() string {
+func (render *HtmlRender) OutFile(path string) string {
 	return render.result.String()
 }

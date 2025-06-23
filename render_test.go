@@ -1,7 +1,6 @@
 package mdConvert
 
 import (
-	"fmt"
 	parser2 "github.com/xyjwsj/md-parser"
 	"os"
 	"testing"
@@ -12,9 +11,11 @@ func TestHtmlRender(t *testing.T) {
 	lexer := parser2.NewLexer(string(file))
 	parser := parser2.NewParser(lexer)
 	ast := parser.Parse()
-	render := HtmlRender{}
-	newRender := NewRender(&render)
-	html := newRender.Render(ast)
+	//render := HtmlRender{}
+	//NewRender(&render).Render(ast)
+	//fmt.Println(render.OutFile(""))
 
-	fmt.Println(html)
+	render := CreatePdfRender()
+	NewRender(render).Render(ast)
+	render.OutFile("/Users/wushaojie/Downloads/test.pdf")
 }

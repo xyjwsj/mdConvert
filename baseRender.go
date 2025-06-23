@@ -18,9 +18,8 @@ func NewRender(item RenderItem) *Render {
 }
 
 // Render 渲染AST为自定义渲染器
-func (r *Render) Render(node *parser.Node) string {
+func (r *Render) Render(node *parser.Node) {
 	r.renderLine(node, 0)
-	return r.item.Result()
 }
 
 func (r *Render) renderLine(node *parser.Node, line int) {
