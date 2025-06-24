@@ -5,17 +5,26 @@ import (
 	"github.com/phpdave11/gofpdf"
 	parser "github.com/xyjwsj/md-parser"
 	"log"
+	"strings"
 )
 
-//go:embed SFNSRounded.ttf
+//go:embed SourceHanSansSC-Normal-Min.ttf SourceHanSansSC-Bold-Min.ttf
 var fontAssets embed.FS
 
-var fontName = "SFNSRounded"
+//var fontName = "Arial"
+
+var fontName = "SourceHanSansSC"
 
 type PDFRender struct {
-	file   *gofpdf.Fpdf
-	line   float64
-	strong bool
+	file      *gofpdf.Fpdf
+	line      float64
+	strong    bool
+	cellWidth float64
+}
+
+var fonts = map[string]string{
+	"":  "SourceHanSansSC-Normal-Min.ttf",
+	"B": "SourceHanSansSC-Bold-Min.ttf",
 }
 
 func CreatePdfRender() *PDFRender {
@@ -23,8 +32,14 @@ func CreatePdfRender() *PDFRender {
 	pdf.SetMargins(15, 15, 15)
 	pdf.AddPage()
 
-	file, _ := fontAssets.ReadFile("SFNSRounded.ttf")
-	pdf.AddUTF8FontFromBytes(fontName, "", file)
+	for k, v := range fonts {
+		file, err := fontAssets.ReadFile(v)
+		if err != nil {
+			log.Println(err)
+		}
+		pdf.AddUTF8FontFromBytes(fontName, k, file)
+	}
+
 	pdf.SetFont(fontName, "", 14)
 
 	return &PDFRender{
@@ -40,20 +55,17 @@ func (pdf *PDFRender) resetFont() {
 func (pdf *PDFRender) RenderTag(node *parser.Node) TagInfo {
 	// 自动分页检测
 	if pdf.file.GetY() > 280 {
-		pdf.file.AddPage()
+		//pdf.file.AddPage()
 	}
 
 	switch node.Type {
 	case parser.TokenHeader:
-		pdf.file.SetFont(fontName, "B", float64(16-node.Level))
-		pdf.line = 8
-		line := 8
+		pdf.file.SetFont(fontName, "B", float64(18-node.Level))
+		pdf.line = 10
 		if node.Level > 0 {
-			//line = 4
-			pdf.line = 5
+			pdf.line = 8
 		}
-		pdf.file.Ln(float64(line)) // 加大标题与正文之间的间距
-
+		pdf.file.Ln(pdf.line) // 加大标题与正文之间的间距
 	case parser.TokenParagraph:
 		pdf.file.SetFont(fontName, "", 12)
 		pdf.line = 5
@@ -68,30 +80,35 @@ func (pdf *PDFRender) RenderTag(node *parser.Node) TagInfo {
 		pdf.file.SetFont(fontName, "", 12)
 		pdf.file.SetX(20) // 缩进 20mm
 		pdf.file.Ln(float64(6 - node.Indent))
-		pdf.line = float64(5 - node.Indent)
-		start := "• "
+		pdf.line = float64(7 - node.Indent)
+
+		start := "●"
 		if node.Indent > 0 {
-			start = "◦ "
+			start = "○"
 		}
-		//pdf.file.Write(4, start)
+
 		return TagInfo{
 			StartFormat: start,
 			End:         "\n",
 		}
 
 	case parser.TokenEmphasis:
-		pdf.file.SetFont(fontName, "I", 12)
+		pdf.file.SetFont(fontName, "", 12)
+		pdf.file.SetFillColor(240, 240, 240) // 浅灰色背景
 		pdf.line = 5
 
 	case parser.TokenStrong:
-		pdf.file.SetFont(fontName, "B", 12)
+		pdf.file.SetFontStyle("B")
 		pdf.line = 5
 		pdf.strong = true
 
 	case parser.TokenCodeBlock:
-		pdf.file.SetFont("Courier", "", 12)
+		pdf.file.SetFont(fontName, "", 12)
 		pdf.file.SetFillColor(240, 240, 240) // 浅灰色背景
-		pdf.line = 5
+		pdf.file.SetX(20)                    // 缩进 20mm
+		pdf.file.SetLeftMargin(10)
+		pdf.line = 6
+		pdf.file.Ln(2)
 
 	case parser.TokenHorizontalRule:
 		x, y := pdf.file.GetX(), pdf.file.GetY()
@@ -117,6 +134,12 @@ func (pdf *PDFRender) RenderTag(node *parser.Node) TagInfo {
 		pdf.file.SetFont(fontName, "", 12)
 		//pdf.file.Ln(1)
 		pdf.line = 6
+		pdf.file.SetX(30)
+		pdf.cellWidth = float64((210.0 - 60) / len(node.Children))
+		return TagInfo{
+			StartFormat: "",
+			End:         "\n",
+		}
 
 	case parser.TokenTableCell:
 		pdf.line = 6
@@ -126,12 +149,19 @@ func (pdf *PDFRender) RenderTag(node *parser.Node) TagInfo {
 	return TagInfo{}
 }
 func (pdf *PDFRender) RenderText(tType parser.TokenType, content string) {
-	// pdf.file.MultiCell(0, pdf.line, content, "", "", false)
-	if tType == parser.TokenTableRow {
-		pdf.file.CellFormat(0, pdf.line, content, "", 0, "", false, 0, "")
-		//pdf.file.CellFormat(0, pdf.line, start+" ", "", 0, "", false, 0, "")
+	if tType == parser.TokenTableCell {
+		if content != "" {
+			pdf.file.CellFormat(pdf.cellWidth, pdf.line, content, "1", 0, "L", false, 0, "")
+		}
+	} else if tType == parser.TokenCodeBlock {
+		//log.Println(content)
+		pdf.file.MultiCell(0, pdf.line, content, "", "", true)
+	} else if tType == parser.TokenEmphasis {
+		pdf.file.MultiCell(0, pdf.line, content, "", "", true)
+	} else {
+		//pdf.file.Write(pdf.line, content)
+		pdf.multiContentWrite(content)
 	}
-	pdf.file.Write(pdf.line, content)
 	if content != "" && pdf.strong && tType == parser.TokenText {
 		pdf.resetFont()
 	}
@@ -146,6 +176,37 @@ func (pdf *PDFRender) OutFile(path string) string {
 	return ""
 }
 
-func (pdf *PDFRender) styleConfig(t parser.TokenType) {
+func (pdf *PDFRender) multiContentWrite(content string) {
+	split := strings.Split(content, "")
+	for _, item := range split {
+		if item == "●" {
+			pdf.draw(true)
+			continue
+		}
+		if item == "○" {
+			pdf.draw(false)
+			continue
+		}
+		pdf.file.Write(pdf.line, item)
+	}
+}
 
+func (pdf *PDFRender) draw(fill bool) {
+	// 获取当前位置
+	x := pdf.file.GetX()
+	y := pdf.file.GetY()
+
+	radius := 0.5
+	pdf.file.SetDrawColor(0, 0, 0) // 黑色边框
+	if fill {
+		// 实心圆圈（●）
+		pdf.file.SetFillColor(0, 0, 0)                     // 黑色填充
+		pdf.file.Ellipse(x+2, y+2, radius, radius, 0, "F") // 填充
+		pdf.file.SetX(x + 6)                               // 向右偏移一点
+	} else {
+		// 空心圆圈（○）
+		pdf.file.SetFillColor(255, 255, 255)               // 白色填充
+		pdf.file.Ellipse(x+2, y+2, radius, radius, 0, "D") // 描边
+		pdf.file.SetX(x + 6)
+	}
 }
