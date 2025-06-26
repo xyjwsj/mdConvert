@@ -127,7 +127,10 @@ func (pdf *PDFRender) RenderTag(node *parser.Node) TagInfo {
 
 	case parser.TokenImage:
 		// 插入图片，宽度固定为 50mm，高度自动计算
-		pdf.file.ImageOptions(node.Content, pdf.file.GetX(), pdf.file.GetY(), 50, 0, false, gofpdf.ImageOptions{}, 0, "")
+		//pdf.file.ImageOptions(node.Content, pdf.file.GetX(), pdf.file.GetY(), 50, 0, false, gofpdf.ImageOptions{}, 0, "")
+		x, y := pdf.file.GetX(), pdf.file.GetY()
+		pdf.file.SetX(x)
+		pdf.file.SetX(y)
 		pdf.file.Ln(10)
 		pdf.line = 10
 
@@ -166,7 +169,22 @@ func (pdf *PDFRender) RenderText(tType parser.TokenType, content, link string) {
 		pdf.file.MultiCell(0, pdf.line, content, "", "", true)
 	} else if tType == parser.TokenImage {
 		base := filepath.Base(link)
-		pdf.file.Image(filepath.Join(pdf.imageDir, base), 0, 0, 0, 0, true, "", 0, "")
+		fType, _ := DetectImageFormat(filepath.Join(pdf.imageDir, base))
+		pdf.file.ImageOptions(
+			filepath.Join(pdf.imageDir, base), // 图片路径
+			pdf.file.GetX(), pdf.file.GetY(),  // X, Y 坐标
+			0, 0, // 宽度，高度（0 自动保持比例）
+			false, // 是否为链接
+			gofpdf.ImageOptions{
+				ImageType:             fType,
+				ReadDpi:               false,
+				AllowNegativePosition: false,
+			}, // 显式指定格式
+			0,       // 链接 URL
+			content, // 替代文本
+		)
+		info := pdf.file.GetImageInfo(filepath.Join(pdf.imageDir, base))
+		pdf.file.SetY(pdf.file.GetY() + info.Height())
 	} else {
 		//pdf.file.Write(pdf.line, content)
 		pdf.multiContentWrite(content)

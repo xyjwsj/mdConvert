@@ -16,6 +16,7 @@ func TestHtmlRender(t *testing.T) {
 	//fmt.Println(render.OutFile(""))
 
 	render := CreatePdfRender()
+	render.SetImageDir("/Users/wushaojie/Downloads")
 	newRender := NewRender(render)
 	newRender.Render(ast)
 	render.OutFile("/Users/wushaojie/Downloads/test.pdf")
