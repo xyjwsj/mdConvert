@@ -16,7 +16,8 @@ func TestHtmlRender(t *testing.T) {
 	//fmt.Println(render.OutFile(""))
 
 	render := CreatePdfRender()
-	render.SetImageDir("/Users/wushaojie/Downloads")
+	render.SetImageDir("/Users/wushaojie/Library/Containers/com.allen.mdnote/Data/Library/Application Support/LiveMark/image")
+	render.SetContentPath("/api/resource/")
 	newRender := NewRender(render)
 	newRender.Render(ast)
 	render.OutFile("/Users/wushaojie/Downloads/test.pdf")

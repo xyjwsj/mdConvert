@@ -17,11 +17,12 @@ var fontAssets embed.FS
 var fontName = "SourceHanSansSC"
 
 type PDFRender struct {
-	file      *gofpdf.Fpdf
-	line      float64
-	strong    bool
-	cellWidth float64
-	imageDir  string
+	file        *gofpdf.Fpdf
+	line        float64
+	strong      bool
+	cellWidth   float64
+	imageDir    string
+	contextPath string
 }
 
 var fonts = map[string]string{
@@ -52,6 +53,10 @@ func CreatePdfRender() *PDFRender {
 
 func (pdf *PDFRender) SetImageDir(dir string) {
 	pdf.imageDir = dir
+}
+
+func (pdf *PDFRender) SetContentPath(path string) {
+	pdf.contextPath = path
 }
 
 func (pdf *PDFRender) resetFont() {
@@ -169,10 +174,14 @@ func (pdf *PDFRender) RenderText(tType parser.TokenType, content, link string) {
 		pdf.file.MultiCell(0, pdf.line, content, "", "", true)
 	} else if tType == parser.TokenImage {
 		base := filepath.Base(link)
-		fType, _ := DetectImageFormat(filepath.Join(pdf.imageDir, base))
+		if pdf.contextPath != "" {
+			base = strings.ReplaceAll(link, pdf.contextPath, "")
+		}
+		imgPath := filepath.Join(pdf.imageDir, base)
+		fType, _ := DetectImageFormat(imgPath)
 		pdf.file.ImageOptions(
-			filepath.Join(pdf.imageDir, base), // 图片路径
-			pdf.file.GetX(), pdf.file.GetY(),  // X, Y 坐标
+			imgPath,                          // 图片路径
+			pdf.file.GetX(), pdf.file.GetY(), // X, Y 坐标
 			0, 0, // 宽度，高度（0 自动保持比例）
 			false, // 是否为链接
 			gofpdf.ImageOptions{
@@ -183,8 +192,10 @@ func (pdf *PDFRender) RenderText(tType parser.TokenType, content, link string) {
 			0,       // 链接 URL
 			content, // 替代文本
 		)
-		info := pdf.file.GetImageInfo(filepath.Join(pdf.imageDir, base))
-		pdf.file.SetY(pdf.file.GetY() + info.Height())
+		info := pdf.file.GetImageInfo(imgPath)
+		if info != nil {
+			pdf.file.SetY(pdf.file.GetY() + info.Height())
+		}
 	} else {
 		//pdf.file.Write(pdf.line, content)
 		pdf.multiContentWrite(content)
