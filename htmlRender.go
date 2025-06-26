@@ -85,7 +85,7 @@ func (render *HtmlRender) RenderTag(node *parser.Node) TagInfo {
 		End:         "",
 	}
 }
-func (render *HtmlRender) RenderText(tType parser.TokenType, content string) {
+func (render *HtmlRender) RenderText(tType parser.TokenType, content, link string) {
 	render.result.WriteString(content)
 }
 

@@ -7,7 +7,7 @@ import (
 )
 
 func TestHtmlRender(t *testing.T) {
-	file, _ := os.ReadFile("/Users/wushaojie/Downloads/MDNote.md")
+	file, _ := os.ReadFile("/Users/wushaojie/Downloads/parse.md")
 	lexer := parser2.NewLexer(string(file))
 	parser := parser2.NewParser(lexer)
 	ast := parser.Parse()
@@ -16,6 +16,7 @@ func TestHtmlRender(t *testing.T) {
 	//fmt.Println(render.OutFile(""))
 
 	render := CreatePdfRender()
-	NewRender(render).Render(ast)
+	newRender := NewRender(render)
+	newRender.Render(ast)
 	render.OutFile("/Users/wushaojie/Downloads/test.pdf")
 }

@@ -5,6 +5,7 @@ import (
 	"github.com/phpdave11/gofpdf"
 	parser "github.com/xyjwsj/md-parser"
 	"log"
+	"path/filepath"
 	"strings"
 )
 
@@ -20,6 +21,7 @@ type PDFRender struct {
 	line      float64
 	strong    bool
 	cellWidth float64
+	imageDir  string
 }
 
 var fonts = map[string]string{
@@ -46,6 +48,10 @@ func CreatePdfRender() *PDFRender {
 		file:   pdf,
 		strong: false,
 	}
+}
+
+func (pdf *PDFRender) SetImageDir(dir string) {
+	pdf.imageDir = dir
 }
 
 func (pdf *PDFRender) resetFont() {
@@ -148,7 +154,7 @@ func (pdf *PDFRender) RenderTag(node *parser.Node) TagInfo {
 
 	return TagInfo{}
 }
-func (pdf *PDFRender) RenderText(tType parser.TokenType, content string) {
+func (pdf *PDFRender) RenderText(tType parser.TokenType, content, link string) {
 	if tType == parser.TokenTableCell {
 		if content != "" {
 			pdf.file.CellFormat(pdf.cellWidth, pdf.line, content, "1", 0, "L", false, 0, "")
@@ -158,6 +164,9 @@ func (pdf *PDFRender) RenderText(tType parser.TokenType, content string) {
 		pdf.file.MultiCell(0, pdf.line, content, "", "", true)
 	} else if tType == parser.TokenEmphasis {
 		pdf.file.MultiCell(0, pdf.line, content, "", "", true)
+	} else if tType == parser.TokenImage {
+		base := filepath.Base(link)
+		pdf.file.Image(filepath.Join(pdf.imageDir, base), 0, 0, 0, 0, true, "", 0, "")
 	} else {
 		//pdf.file.Write(pdf.line, content)
 		pdf.multiContentWrite(content)
